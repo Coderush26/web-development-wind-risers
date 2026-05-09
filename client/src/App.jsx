@@ -8,6 +8,7 @@ import ResetPassword from './pages/auth/ResetPassword'
 import VerifyEmail from './pages/auth/VerifyEmail'
 import CommandDashboard from './pages/CommandDashboard'
 import CaptainDashboard from './pages/CaptainDashboard'
+import PlaybackView from './pages/PlaybackView'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -41,6 +42,15 @@ function App() {
           element={
             <ProtectedRoute role="captain">
               <CaptainDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/playback"
+          element={
+            <ProtectedRoute role="command">
+              <PlaybackView />
             </ProtectedRoute>
           }
         />

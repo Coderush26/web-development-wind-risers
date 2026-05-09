@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { usePusher } from '../context/PusherContext'
 import FleetMap from '../components/map/FleetMap'
@@ -98,6 +99,7 @@ function ZoneNameModal({ polygon, onConfirm, onCancel }) {
 export default function CommandDashboard() {
   const { user, logout }   = useAuth()
   const { fleet, alerts, zones, loading } = usePusher()
+  const navigate = useNavigate()
 
   const [selectedShip,   setSelectedShip]   = useState(null)
   const [composerOpen,   setComposerOpen]   = useState(false)
@@ -173,6 +175,16 @@ export default function CommandDashboard() {
             <span className="text-xs text-[#8B949E]">{user?.firstName} {user?.lastName}</span>
           </div>
           <button
+            onClick={() => navigate('/playback')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#E3B341] border border-[#E3B341]/25 hover:bg-[#E3B341]/10 transition-all"
+          >
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+            </svg>
+            Playback
+          </button>
+          <button
             onClick={logout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#8B949E] border border-[#30363D] hover:bg-[#1C2333] hover:text-[#F0F6FC] transition-all"
           >
@@ -224,7 +236,7 @@ export default function CommandDashboard() {
               <button
                 key={tab}
                 onClick={() => setSidebarTab(tab)}
-                className={`flex-1 h-[42px] text-[11px] font-semibold uppercase tracking-[0.1em] transition-all relative ${
+                className={`flex-1 h-10.5 text-[11px] font-semibold uppercase tracking-widest transition-all relative ${
                   sidebarTab === tab ? 'text-[#F0F6FC]' : 'text-[#484F58] hover:text-[#8B949E]'
                 }`}
               >

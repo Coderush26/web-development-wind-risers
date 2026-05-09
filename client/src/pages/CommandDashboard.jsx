@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { usePusher } from '../context/PusherContext'
@@ -9,6 +9,7 @@ import DirectiveComposer from '../components/directives/DirectiveComposer'
 import DirectiveFeed from '../components/directives/DirectiveFeed'
 import api from '../utils/api'
 import toast from 'react-hot-toast'
+import { playAlertSound } from '../utils/sounds'
 
 function NavLogo() {
   return (
@@ -173,6 +174,17 @@ export default function CommandDashboard() {
   const [composerOpen,   setComposerOpen]   = useState(false)
   const [sidebarTab,     setSidebarTab]     = useState('alerts')
   const [pendingPolygon, setPendingPolygon] = useState(null)
+
+  // Always-on sound watcher — independent of which sidebar tab is active
+  const seenAlertsRef = useRef(new Set())
+  useEffect(() => {
+    alerts.forEach(a => {
+      if (!seenAlertsRef.current.has(a._id)) {
+        seenAlertsRef.current.add(a._id)
+        if (a.status === 'active') playAlertSound(a.severity, a.type)
+      }
+    })
+  }, [alerts])
 
   const activeAlerts    = alerts.filter(a => a.status === 'active')
   const distressedShips = fleet.filter(s => s.status === 'distressed' || s.status === 'stranded')

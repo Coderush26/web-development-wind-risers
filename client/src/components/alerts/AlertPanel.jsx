@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import api from '../../utils/api'
 import { usePusher } from '../../context/PusherContext'
-import { playAlertSound } from '../../utils/sounds'
 
 const SEVERITY_STYLES = {
   critical: { bar: 'bg-[#F85149]', badge: 'bg-[#F85149]/15 text-[#F85149] border border-[#F85149]/20', label: 'CRITICAL' },
@@ -28,19 +27,6 @@ function timeAgo(date) {
 export default function AlertPanel({ userRole }) {
   const { alerts, setAlerts } = usePusher()
   const [acking, setAcking]   = useState(null)
-  const seenRef               = useRef(new Set())
-
-  // Play tone on new critical/high alerts
-  useEffect(() => {
-    alerts.forEach(a => {
-      if (!seenRef.current.has(a._id)) {
-        seenRef.current.add(a._id)
-        if (a.status === 'active') {
-          playAlertSound(a.severity, a.type)
-        }
-      }
-    })
-  }, [alerts])
 
   const active = alerts.filter(a => a.status === 'active')
     .sort((a, b) => {

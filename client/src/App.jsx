@@ -7,6 +7,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import VerifyEmail from './pages/auth/VerifyEmail'
 import CommandDashboard from './pages/CommandDashboard'
+import CaptainDashboard from './pages/CaptainDashboard'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -35,14 +36,11 @@ function App() {
           }
         />
 
-        {/* Captain dashboard — Phase 8 */}
         <Route
           path="/captain"
           element={
             <ProtectedRoute role="captain">
-              <div className="flex items-center justify-center h-screen bg-[#0B0E14] text-[#8B949E] text-sm">
-                Captain dashboard — coming in Phase 8
-              </div>
+              <CaptainDashboard />
             </ProtectedRoute>
           }
         />

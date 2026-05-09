@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -13,12 +13,12 @@ const STATUS_COLORS = {
 }
 
 function shipIcon(ship) {
-  const color    = STATUS_COLORS[ship.status] || '#8B949E'
-  const rad      = (ship.heading * Math.PI) / 180
-  const ex       = 14 + Math.sin(rad) * 9
-  const ey       = 14 - Math.cos(rad) * 9
-  const isPulse  = ship.status === 'distressed' || ship.status === 'stranded'
-  const isWarn   = ship.status === 'insufficient_fuel'
+  const color   = STATUS_COLORS[ship.status] || '#8B949E'
+  const rad     = (ship.heading * Math.PI) / 180
+  const ex      = 14 + Math.sin(rad) * 9
+  const ey      = 14 - Math.cos(rad) * 9
+  const isPulse = ship.status === 'distressed' || ship.status === 'stranded'
+  const isWarn  = ship.status === 'insufficient_fuel'
 
   const pulse = isPulse
     ? `<div style="position:absolute;inset:-5px;border-radius:50%;background:${color};opacity:0.3;animation:marker-ring 1.4s ease-out infinite;pointer-events:none"></div>`
@@ -40,9 +40,10 @@ function shipIcon(ship) {
   return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14] })
 }
 
+// ── Ship markers (imperative for performance) ──────────────────────────────
 function MapController({ fleet, onShipClick }) {
-  const map         = useMap()
-  const markersRef  = useRef(new Map())
+  const map        = useMap()
+  const markersRef = useRef(new Map())
 
   useEffect(() => {
     const current = markersRef.current
@@ -60,7 +61,7 @@ function MapController({ fleet, onShipClick }) {
       } else {
         const m = L.marker(latlng, { icon })
           .addTo(map)
-          .on('click', () => onShipClick && onShipClick(ship))
+          .on('click', () => onShipClick?.(ship))
         m.bindTooltip(
           `<div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:#F0F6FC;background:#161B22;border:1px solid #30363D;padding:4px 8px;border-radius:6px;">${ship.name}</div>`,
           { permanent: false, direction: 'top', offset: [0, -12], opacity: 1, className: '' }
@@ -69,7 +70,6 @@ function MapController({ fleet, onShipClick }) {
       }
     })
 
-    // Remove stale markers
     current.forEach((marker, id) => {
       if (!seen.has(id)) { marker.remove(); current.delete(id) }
     })
@@ -78,7 +78,60 @@ function MapController({ fleet, onShipClick }) {
   return null
 }
 
-export default function FleetMap({ fleet, zones, onShipClick }) {
+// ── Zone drawing (command only, requires leaflet-draw CDN) ─────────────────
+function DrawController({ onZoneDrawn }) {
+  const map          = useMap()
+  const drawnRef     = useRef(null)
+  const controlRef   = useRef(null)
+  const stableCallback = useCallback(onZoneDrawn, []) // eslint-disable-line
+
+  useEffect(() => {
+    if (!map || !window.L?.Control?.Draw) return
+
+    const drawnItems = new window.L.FeatureGroup()
+    map.addLayer(drawnItems)
+    drawnRef.current = drawnItems
+
+    const drawControl = new window.L.Control.Draw({
+      position: 'topright',
+      edit:     { featureGroup: drawnItems, edit: false, remove: false },
+      draw: {
+        polygon: {
+          shapeOptions: {
+            color: '#F85149', fillColor: '#F85149',
+            fillOpacity: 0.12, weight: 1.5, dashArray: '6 4',
+          },
+          showArea: false,
+          guideLayers: [],
+        },
+        polyline: false, rectangle: false, circle: false,
+        circlemarker: false, marker: false,
+      },
+    })
+
+    map.addControl(drawControl)
+    controlRef.current = drawControl
+
+    const onCreate = e => {
+      const latlngs = e.layer.getLatLngs()[0].map(ll => [ll.lat, ll.lng])
+      drawnItems.clearLayers()
+      stableCallback(latlngs)
+    }
+
+    map.on(window.L.Draw.Event.CREATED, onCreate)
+
+    return () => {
+      map.off(window.L.Draw.Event.CREATED, onCreate)
+      if (controlRef.current) map.removeControl(controlRef.current)
+      if (drawnRef.current)   map.removeLayer(drawnRef.current)
+    }
+  }, [map, stableCallback])
+
+  return null
+}
+
+// ── Main export ────────────────────────────────────────────────────────────
+export default function FleetMap({ fleet, zones, onShipClick, userRole, onZoneDrawn }) {
   return (
     <MapContainer
       center={[26.5, 54.0]}
@@ -100,16 +153,14 @@ export default function FleetMap({ fleet, zones, onShipClick }) {
           key={zone._id}
           positions={zone.polygon.map(p => [p[0], p[1]])}
           pathOptions={{
-            color:       '#F85149',
-            fillColor:   '#F85149',
-            fillOpacity: 0.12,
-            weight:      1.5,
-            dashArray:   '6 4',
+            color: '#F85149', fillColor: '#F85149',
+            fillOpacity: 0.12, weight: 1.5, dashArray: '6 4',
           }}
         />
       ))}
 
       <MapController fleet={fleet} onShipClick={onShipClick} />
+      {userRole === 'command' && onZoneDrawn && <DrawController onZoneDrawn={onZoneDrawn} />}
     </MapContainer>
   )
 }

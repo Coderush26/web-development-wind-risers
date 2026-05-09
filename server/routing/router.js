@@ -118,6 +118,33 @@ const DIRS = [
   [-1, -1, 1.414], [-1, 1, 1.414], [1, -1, 1.414], [1, 1, 1.414],
 ]
 
+// BFS outward from a grid cell until a navigable cell is found.
+// Ports sit just outside the polygon — this snaps them into the water.
+function snapToWater(lat, lng) {
+  const r0 = Math.max(0, Math.min(ROWS - 1, latToRow(lat)))
+  const c0 = Math.max(0, Math.min(COLS - 1, lngToCol(lng)))
+  if (waterGrid[r0 * COLS + c0]) return { r: r0, c: c0 }
+
+  const visited = new Uint8Array(ROWS * COLS)
+  const queue   = [[r0, c0]]
+  visited[r0 * COLS + c0] = 1
+
+  while (queue.length > 0) {
+    const [r, c] = queue.shift()
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]) {
+      const nr = r + dr, nc = c + dc
+      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+      const idx = nr * COLS + nc
+      if (visited[idx]) continue
+      visited[idx] = 1
+      if (waterGrid[idx]) return { r: nr, c: nc }
+      queue.push([nr, nc])
+    }
+    if (queue.length > 500) break  // safety: give up after 500 BFS steps
+  }
+  return { r: r0, c: c0 }  // fallback to original cell
+}
+
 function heuristic(r1, c1, r2, c2) {
   return Math.sqrt((r2 - r1) ** 2 + (c2 - c1) ** 2)
 }
@@ -125,11 +152,8 @@ function heuristic(r1, c1, r2, c2) {
 function astar(fromPos, toPos, blocked) {
   if (!waterGrid) return []
 
-  const sr = latToRow(fromPos.lat), sc = lngToCol(fromPos.lng)
-  const er = latToRow(toPos.lat),   ec = lngToCol(toPos.lng)
-
-  if (sr < 0 || sr >= ROWS || sc < 0 || sc >= COLS) return []
-  if (er < 0 || er >= ROWS || ec < 0 || ec >= COLS) return []
+  const { r: sr, c: sc } = snapToWater(fromPos.lat, fromPos.lng)
+  const { r: er, c: ec } = snapToWater(toPos.lat,   toPos.lng)
 
   const gScore = new Float32Array(ROWS * COLS).fill(Infinity)
   const parent = new Int32Array(ROWS * COLS).fill(-1)

@@ -158,7 +158,6 @@ async function computeInitialPaths() {
   const zones = await Zone.find({ isActive: true })
   let computed = 0
   for (const ship of ships) {
-    if (ship.currentPath && ship.currentPath.length > 0) continue
     const path = computePathWithZones(
       { lat: ship.position.lat, lng: ship.position.lng },
       { lat: ship.destination.lat, lng: ship.destination.lng },
@@ -186,6 +185,20 @@ export async function startSimulator() {
       for (const ship of ships) {
         if (ship.status === 'stopped' || ship.status === 'arrived') continue
 
+        // Recompute path if missing or exhausted (self-healing)
+        const pathExhausted = ship.currentPath.length === 0 || ship.pathIndex >= ship.currentPath.length
+        if (pathExhausted && ship.status !== 'distressed') {
+          const newPath = computePathWithZones(
+            { lat: ship.position.lat, lng: ship.position.lng },
+            { lat: ship.destination.lat, lng: ship.destination.lng },
+            zones
+          )
+          if (newPath.length > 0) {
+            ship.currentPath = newPath
+            ship.pathIndex   = 0
+          }
+        }
+
         // Update adverse weather flag (uses 5-min cache — no throttle concern)
         ship.inAdverseWeather = await isAdverseWeather(ship.position.lat, ship.position.lng)
 
@@ -209,7 +222,10 @@ export async function startSimulator() {
       await checkProximity(ships)
 
       await trigger('fleet', 'fleet_update', {
-        ships: ships.map(s => s.toObject()),
+        ships: ships.map(s => {
+          const { currentPath, pathIndex, __v, ...rest } = s.toObject()
+          return rest
+        }),
       })
     } catch (err) {
       console.error('Simulator tick error:', err.message)

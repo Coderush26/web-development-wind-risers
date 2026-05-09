@@ -96,9 +96,77 @@ function ZoneNameModal({ polygon, onConfirm, onCancel }) {
   )
 }
 
+const ZONE_TYPE_STYLE = {
+  restricted: 'bg-[#F85149]/12 text-[#F85149] border-[#F85149]/25',
+  weather:    'bg-[#E3B341]/12 text-[#E3B341] border-[#E3B341]/25',
+}
+
+function ZonesPanel({ zones, onDelete }) {
+  const [deleting, setDeleting] = useState(null)
+
+  async function del(id) {
+    setDeleting(id)
+    await onDelete(id)
+    setDeleting(null)
+  }
+
+  return (
+    <div className="flex flex-col overflow-hidden flex-1 min-h-0">
+      <div className="flex items-center justify-between px-4 h-10.5 border-b border-[#30363D] flex-shrink-0">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#8B949E]">Active Zones</span>
+        <span className={`font-mono text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+          zones.length > 0
+            ? 'bg-[#F85149]/12 text-[#F85149] border-[#F85149]/20'
+            : 'bg-[#8B949E]/10 text-[#484F58] border-[#30363D]'
+        }`}>{zones.length}</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+        {zones.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-2 text-[#484F58]">
+            <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span className="text-xs font-medium">No active zones</span>
+            <span className="text-[10px] text-[#484F58]">Draw a zone on the map</span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1 p-2">
+            {zones.map(zone => (
+              <div key={zone._id} className="flex items-center gap-3 bg-[#0B0E14] border border-[#21262D] rounded-lg px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold text-[#F0F6FC] truncate">{zone.name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${ZONE_TYPE_STYLE[zone.type] || ZONE_TYPE_STYLE.restricted}`}>
+                      {zone.type}
+                    </span>
+                    <span className="font-mono text-[10px] text-[#484F58]">{zone.polygon?.length} pts</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => del(zone._id)}
+                  disabled={deleting === zone._id}
+                  className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-[#F85149]/08 text-[#F85149] border border-[#F85149]/20 hover:bg-[#F85149]/20 transition-colors disabled:opacity-40"
+                >
+                  {deleting === zone._id
+                    ? <span className="text-[10px]">…</span>
+                    : <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                  }
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function CommandDashboard() {
   const { user, logout }   = useAuth()
-  const { fleet, alerts, zones, loading } = usePusher()
+  const { fleet, alerts, zones, loading, setZones } = usePusher()
   const navigate = useNavigate()
 
   const [selectedShip,   setSelectedShip]   = useState(null)
@@ -109,6 +177,16 @@ export default function CommandDashboard() {
   const activeAlerts    = alerts.filter(a => a.status === 'active')
   const distressedShips = fleet.filter(s => s.status === 'distressed' || s.status === 'stranded')
   const liveShip        = selectedShip ? fleet.find(s => s._id === selectedShip._id) || selectedShip : null
+
+  async function handleZoneDeleted(zoneId) {
+    try {
+      await api.delete(`/zones/${zoneId}`)
+      setZones(prev => prev.filter(z => z._id !== zoneId))
+      toast.success('Zone removed')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete zone')
+    }
+  }
 
   async function handleZoneCreated({ name, type, polygon }) {
     try {
@@ -207,6 +285,7 @@ export default function CommandDashboard() {
             userRole={user?.role}
             onShipClick={ship => { setSelectedShip(ship); setComposerOpen(false) }}
             onZoneDrawn={polygon => setPendingPolygon(polygon)}
+            onZoneDelete={handleZoneDeleted}
           />
 
           {zones.length > 0 && (
@@ -232,7 +311,7 @@ export default function CommandDashboard() {
 
           {/* Tabs */}
           <div className="shrink-0 flex border-b border-[#30363D]">
-            {['alerts', 'directives'].map(tab => (
+            {['alerts', 'directives', 'zones'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setSidebarTab(tab)}
@@ -246,6 +325,11 @@ export default function CommandDashboard() {
                     {activeAlerts.length}
                   </span>
                 )}
+                {tab === 'zones' && zones.length > 0 && (
+                  <span className="ml-1.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#F85149]/15 text-[#F85149]">
+                    {zones.length}
+                  </span>
+                )}
                 {sidebarTab === tab && (
                   <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#58A6FF] rounded-t-full" />
                 )}
@@ -255,7 +339,9 @@ export default function CommandDashboard() {
 
           {/* Top half */}
           <div className="flex flex-col overflow-hidden" style={{ flex: 1, minHeight: 0 }}>
-            {sidebarTab === 'alerts' ? <AlertPanel userRole={user?.role} /> : <DirectiveFeed />}
+            {sidebarTab === 'alerts'     && <AlertPanel userRole={user?.role} />}
+            {sidebarTab === 'directives' && <DirectiveFeed />}
+            {sidebarTab === 'zones'      && <ZonesPanel zones={zones} onDelete={handleZoneDeleted} />}
           </div>
 
           <div className="h-px bg-[#30363D] shrink-0" />

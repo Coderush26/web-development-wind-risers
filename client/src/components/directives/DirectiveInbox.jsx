@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePusher } from '../../context/PusherContext'
 import api from '../../utils/api'
 import toast from 'react-hot-toast'
+import { playDirectiveSound } from '../../utils/sounds'
 
 const TYPE_LABELS = {
   reroute:         'Reroute',
@@ -30,6 +31,17 @@ export default function DirectiveInbox({ ship }) {
   const [responding,  setResponding]  = useState(null)
   const [expandedId,  setExpandedId]  = useState(null)
   const [escalateMsg, setEscalateMsg] = useState('')
+  const seenRef = useRef(new Set())
+
+  // Play sound when a new pending directive arrives via Pusher
+  useEffect(() => {
+    directives.forEach(d => {
+      if (d.status === 'pending' && !seenRef.current.has(d._id)) {
+        seenRef.current.add(d._id)
+        playDirectiveSound()
+      }
+    })
+  }, [directives])
 
   // Load any pre-existing pending directives for this ship on mount
   useEffect(() => {

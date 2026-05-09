@@ -45,7 +45,11 @@ router.post('/', protect, requireRole('command'), async (req, res) => {
     }
 
     await trigger('fleet', 'fleet_update', {
-      ships: ships.map(s => s.toObject()),
+      ts: Date.now(),
+      ships: ships.map(s => {
+        const { currentPath, pathIndex, __v, ...rest } = s.toObject()
+        return rest
+      }),
     })
 
     res.status(201).json(zone)
@@ -69,7 +73,33 @@ router.delete('/:id', protect, requireRole('command'), async (req, res) => {
   try {
     const zone = await Zone.findByIdAndDelete(req.params.id)
     if (!zone) return res.status(404).json({ message: 'Zone not found' })
+
+    // Recompute paths for all active ships now that this zone is gone
+    const remainingZones = await Zone.find({ isActive: true })
+    const ships = await Ship.find({ status: { $nin: ['arrived', 'stopped', 'distressed'] } })
+    for (const ship of ships) {
+      const newPath = computePathWithZones(
+        { lat: ship.position.lat, lng: ship.position.lng },
+        { lat: ship.destination.lat, lng: ship.destination.lng },
+        remainingZones
+      )
+      if (newPath.length > 0) {
+        ship.currentPath = newPath
+        ship.pathIndex   = 0
+        if (ship.status === 'rerouting') ship.status = 'normal'
+        await ship.save()
+      }
+    }
+
     await trigger('zones', 'zone_deleted', { zoneId: req.params.id })
+    await trigger('fleet', 'fleet_update', {
+      ts: Date.now(),
+      ships: ships.map(s => {
+        const { currentPath, pathIndex, __v, ...rest } = s.toObject()
+        return rest
+      }),
+    })
+
     res.json({ message: 'Zone deleted' })
   } catch (err) {
     res.status(500).json({ message: err.message })

@@ -1,24 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../utils/api'
 import { usePusher } from '../../context/PusherContext'
-
-function playAlertTone() {
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)()
-    const osc  = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(880, ctx.currentTime)
-    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.15)
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.30)
-    gain.gain.setValueAtTime(0.18, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6)
-    osc.start(ctx.currentTime)
-    osc.stop(ctx.currentTime + 0.6)
-  } catch { /* browser autoplay policy — noop */ }
-}
+import { playAlertSound } from '../../utils/sounds'
 
 const SEVERITY_STYLES = {
   critical: { bar: 'bg-[#F85149]', badge: 'bg-[#F85149]/15 text-[#F85149] border border-[#F85149]/20', label: 'CRITICAL' },
@@ -52,8 +35,8 @@ export default function AlertPanel({ userRole }) {
     alerts.forEach(a => {
       if (!seenRef.current.has(a._id)) {
         seenRef.current.add(a._id)
-        if (a.status === 'active' && (a.severity === 'critical' || a.severity === 'high')) {
-          playAlertTone()
+        if (a.status === 'active') {
+          playAlertSound(a.severity, a.type)
         }
       }
     })

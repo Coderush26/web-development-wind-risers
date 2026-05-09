@@ -20,12 +20,8 @@ jobs:
             cd /var/www/wind-risers
 
             echo ">>> Pulling latest code..."
-<<<<<<< HEAD
-            git pull origin main
-=======
             git fetch origin
             git reset --hard origin/main
->>>>>>> b7af4ba54f95bdf7bd2b2f824afe38c16d16d978
 
             echo ">>> Building React frontend..."
             cd client

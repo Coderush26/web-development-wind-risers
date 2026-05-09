@@ -1,6 +1,11 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/qMg4I596)
+# 🚢 Strait of Hormuz Crisis — Fleet Command System
 
-# Strait of Hormuz Crisis — Fleet Command System
+> **🌐 Live Demo: [https://vircosa.com](https://vircosa.com)**
+>
+> | Role | Email | Password |
+> |------|-------|----------|
+> | Fleet Command | command@coderush.dev | Command@123 |
+> | Ship Captain (MV-7 Gharial) | captain@coderush.dev | Captain@123 |
 
 Real-time maritime fleet command system. 15 cargo ships transit the Strait of Hormuz while Command monitors, reroutes, and directs via a live operations dashboard.
 
@@ -21,9 +26,45 @@ Real-time maritime fleet command system. 15 cargo ships transit the Strait of Ho
 
 ---
 
-## Production Deployment — vircosa.com (Oracle Cloud + GitHub Actions)
+## Production Deployment — [vircosa.com](https://vircosa.com) (Oracle Cloud + GitHub Actions)
 
-Every push to `main` triggers the workflow in `.github/workflows/deploy.yml`.
+Every push to `main` automatically triggers the CI/CD pipeline via `.github/workflows/deploy.yml`.
+
+### CI/CD Pipeline Overview
+
+```
+Developer pushes to main
+        ↓
+GitHub Actions triggered
+        ↓
+SSH into Oracle Cloud server (139.185.54.53)
+        ↓
+git fetch origin && git reset --hard origin/main
+        ↓
+Write server/.env from GitHub Secrets
+        ↓
+npm install && VITE_PUSHER_KEY=... npm run build  (Vite bakes keys into bundle)
+        ↓
+Copy client/dist/ → /var/www/html/  (Nginx webroot)
+        ↓
+npm install --omit=dev  (server deps)
+        ↓
+pm2 restart coderush-api  (Node backend)
+        ↓
+nginx -s reload
+        ↓
+✅ Live at https://vircosa.com
+```
+
+### Infrastructure
+
+| Component | Details |
+|-----------|---------|
+| Server | Oracle Cloud Free Tier — Ubuntu 22.04 |
+| Web server | Nginx 1.18 with SSL (Let's Encrypt) |
+| Process manager | PM2 — auto-restart on crash, persists across reboots |
+| Database | MongoDB Atlas (cloud) |
+| CI/CD | GitHub Actions — zero-downtime deploy on every push to `main` |
 
 ### One-time server setup (SSH in once, never again)
 
@@ -52,10 +93,10 @@ Add these in **Settings → Secrets → Actions** on your GitHub repo:
 
 | Secret | Description |
 |--------|-------------|
-| `SERVER_HOST` | Oracle server IP or hostname |
-| `SERVER_USER` | SSH username (e.g. `ubuntu`) |
+| `SERVER_HOST` | Oracle server IP (`139.185.54.53`) |
+| `SERVER_USER` | SSH username (`ubuntu`) |
 | `SERVER_SSH_KEY` | Private SSH key (contents of `~/.ssh/id_rsa`) |
-| `SERVER_PORT` | SSH port (usually `22`) |
+| `SERVER_PORT` | SSH port (`22`) |
 | `MONGO_URI` | MongoDB Atlas connection string |
 | `JWT_SECRET` | Long random string for JWT signing |
 | `PUSHER_APP_ID` | Pusher app ID |
@@ -69,13 +110,13 @@ Add these in **Settings → Secrets → Actions** on your GitHub repo:
 ### What the workflow does on every push
 
 1. SSHs into the Oracle server
-2. `git reset --hard origin/main` — pulls the latest code
+2. `git fetch origin && git reset --hard origin/main` — force-pulls the latest code
 3. Writes `server/.env` from GitHub Secrets (fully automated, no manual .env on server)
-4. Runs `npm ci && VITE_PUSHER_KEY=... npm run build` — Vite bakes Pusher keys into the JS bundle
-5. Copies `client/dist/` → `/var/www/html/` (nginx webroot)
-6. Runs `npm ci --omit=dev` in `server/`
-7. `pm2 restart wind-risers-backend` (or starts it fresh on first deploy)
-8. Deploys `nginx/vircosa.conf` → `/etc/nginx/sites-available/coderush` and reloads nginx
+4. Runs `npm install && VITE_PUSHER_KEY=... npm run build` — Vite bakes Pusher keys into the JS bundle
+5. Copies `client/dist/` → `/var/www/html/` (Nginx webroot)
+6. Runs `npm install --omit=dev` in `server/`
+7. `pm2 restart coderush-api` (or starts it fresh on first deploy)
+8. Reloads Nginx
 
 ---
 
@@ -96,12 +137,6 @@ cp .env.example .env
 Docker Compose auto-loads the root `.env` — it is the single source of truth for both the server container and the React client build. The `MONGO_URI` you set is only used for local dev; Docker Compose overrides it to the bundled MongoDB container automatically.
 
 ### 2. Run
-
-```bash
-docker compose up --build
-```
-
-### 3. Run
 
 ```bash
 docker compose up --build

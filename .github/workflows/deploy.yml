@@ -58,7 +58,8 @@ jobs:
             # ── Build the React client (Vite → dist/) ─────────────────────────
             echo ">>> Building React frontend..."
             cd client
-            npm ci
+            npm install
+
             # Inject Pusher keys at build time so Vite bakes them into the bundle
             VITE_PUSHER_KEY=$PUSHER_KEY \
             VITE_PUSHER_CLUSTER=$PUSHER_CLUSTER \
@@ -71,13 +72,13 @@ jobs:
             # ── Install server dependencies ────────────────────────────────────
             echo ">>> Installing server dependencies..."
             cd ../server
-            npm ci --omit=dev
+            npm install --omit=dev
 
             # ── Restart API server with PM2 ────────────────────────────────────
             echo ">>> Restarting API with PM2..."
-            pm2 describe coderush-api > /dev/null 2>&1 \
-              && pm2 restart coderush-api \
-              || pm2 start server.js --name coderush-api
+            pm2 describe wind-risers-backend > /dev/null 2>&1 \
+              && pm2 restart wind-risers-backend \
+              || pm2 start server.js --name wind-risers-backend
             pm2 save
 
             # ── Deploy nginx config and reload ─────────────────────────────────

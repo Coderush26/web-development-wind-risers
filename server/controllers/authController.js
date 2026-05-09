@@ -6,7 +6,7 @@ import sendEmail from '../utils/sendEmail.js'
 // ─── Register ─────────────────────────────────────────────────────────────────
 export const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body
+    const { firstName, lastName, email, password, role, assignedShipId } = req.body
 
     const existing = await User.findOne({ email })
     if (existing) {
@@ -46,6 +46,8 @@ export const register = async (req, res) => {
       lastName,
       email,
       password,
+      role: role === 'captain' ? 'captain' : 'command',
+      assignedShipId: role === 'captain' ? (assignedShipId || null) : null,
       verificationToken,
       verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000,
     })
@@ -123,6 +125,8 @@ export const login = async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         avatar: user.avatar,
+        role: user.role,
+        assignedShipId: user.assignedShipId,
       },
     })
   } catch (err) {

@@ -3,21 +3,21 @@ import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import api from '../../utils/api'
-import { t } from '../../config/theme'
 
 const Logo = () => (
-  <div className="w-9 h-9 bg-blue-950 rounded-xl flex items-center justify-center mb-7">
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13 3L4 14h8l-1 7 9-11h-8l1-7z" />
+  <div className="auth-logo-mark">
+    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" />
+      <path strokeLinecap="round" d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+      <path strokeLinecap="round" strokeOpacity={0.4} d="M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M19.07 4.93l-2.12 2.12M7.05 16.95l-2.12 2.12" />
     </svg>
   </div>
 )
 
-
 export default function Signup() {
-  const [showPass, setShowPass] = useState(false)
+  const [showPass, setShowPass]       = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [done, setDone] = useState(false)
+  const [done, setDone]               = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm()
@@ -32,24 +32,30 @@ export default function Signup() {
     }
   }
 
-  /* ── Success screen ─────────────────────────────────────────── */
+  /* ── Success screen ──────────────────────────────────────────────────────── */
   if (done) {
     return (
-      <div className={t.pageBg}>
-        <div className={`${t.card} ${t.cardSm}`}>
-          <div className={`${t.cardPadding} text-center`}>
-            <div className={t.successIcon}>
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+      <div className="auth-page">
+        <div className="auth-card auth-card-sm">
+          <div className="auth-card-body" style={{ textAlign: 'center' }}>
+            <div className="status-icon-success">
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">Check your inbox</h2>
-            <p className="text-sm text-gray-500 mb-0.5">
-              We emailed a verification link to
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-high)', marginBottom: '8px' }}>
+              Check your inbox
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-low)', marginBottom: '4px' }}>
+              Verification link sent to
             </p>
-            <p className="text-sm font-medium text-gray-800 mb-5">{registeredEmail}</p>
-            <p className="text-xs text-gray-400 mb-7">Click the link to activate your account.</p>
-            <Link to="/login" className={t.btn} style={{ display: 'inline-block', width: 'auto', padding: '0.625rem 2rem' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-high)', marginBottom: '24px', fontFamily: 'var(--font-data)' }}>
+              {registeredEmail}
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '28px' }}>
+              Click the link in your email to activate your account.
+            </p>
+            <Link to="/login" className="auth-btn" style={{ display: 'inline-block', width: 'auto', padding: '10px 32px', textDecoration: 'none' }}>
               Go to login
             </Link>
           </div>
@@ -58,57 +64,57 @@ export default function Signup() {
     )
   }
 
-  /* ── Form ───────────────────────────────────────────────────── */
+  /* ── Form ────────────────────────────────────────────────────────────────── */
   return (
-    <div className={`${t.pageBg} relative`}>
-
-      {/* Back to home */}
-      <Link to="/" className={`absolute top-6 left-6 ${t.backLink}`}>
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back
-      </Link>
-
-      <div className={`${t.card} ${t.cardMd}`}>
-        <div className={t.cardPadding}>
+    <div className="auth-page">
+      <div className="auth-card auth-card-md">
+        <div className="auth-card-body">
 
           <Logo />
 
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Create your account</h1>
-          <p className="text-sm text-gray-500 mt-1 mb-7">Start building with CodeRush today</p>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+              Fleet Command System
+            </p>
+            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-text-high)', letterSpacing: '-0.02em' }}>
+              Create your account
+            </h1>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-low)', marginTop: '6px' }}>
+              Role assignment is handled by Fleet Command after verification
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <label className={t.label}>First name</label>
+                <label className="auth-label">First name</label>
                 <input
                   type="text"
                   placeholder="John"
                   autoComplete="given-name"
                   {...register('firstName', { required: 'Required' })}
-                  className={`${t.input} ${errors.firstName ? t.inputError : ''}`}
+                  className={`auth-input${errors.firstName ? ' error' : ''}`}
                 />
-                {errors.firstName && <p className={t.fieldError}>{errors.firstName.message}</p>}
+                {errors.firstName && <p className="auth-field-error">{errors.firstName.message}</p>}
               </div>
               <div>
-                <label className={t.label}>Last name</label>
+                <label className="auth-label">Last name</label>
                 <input
                   type="text"
                   placeholder="Doe"
                   autoComplete="family-name"
                   {...register('lastName', { required: 'Required' })}
-                  className={`${t.input} ${errors.lastName ? t.inputError : ''}`}
+                  className={`auth-input${errors.lastName ? ' error' : ''}`}
                 />
-                {errors.lastName && <p className={t.fieldError}>{errors.lastName.message}</p>}
+                {errors.lastName && <p className="auth-field-error">{errors.lastName.message}</p>}
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label className={t.label}>Email address</label>
+              <label className="auth-label">Email address</label>
               <input
                 type="email"
                 placeholder="you@example.com"
@@ -117,15 +123,15 @@ export default function Signup() {
                   required: 'Email is required',
                   pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
                 })}
-                className={`${t.input} ${errors.email ? t.inputError : ''}`}
+                className={`auth-input${errors.email ? ' error' : ''}`}
               />
-              {errors.email && <p className={t.fieldError}>{errors.email.message}</p>}
+              {errors.email && <p className="auth-field-error">{errors.email.message}</p>}
             </div>
 
             {/* Password */}
             <div>
-              <label className={t.label}>Password</label>
-              <div className="relative">
+              <label className="auth-label">Password</label>
+              <div style={{ position: 'relative' }}>
                 <input
                   type={showPass ? 'text' : 'password'}
                   placeholder="Min. 6 characters"
@@ -134,50 +140,50 @@ export default function Signup() {
                     required: 'Password is required',
                     minLength: { value: 6, message: 'Minimum 6 characters' },
                   })}
-                  className={`${t.input} ${errors.password ? t.inputError : ''} pr-14`}
+                  className={`auth-input${errors.password ? ' error' : ''}`}
+                  style={{ paddingRight: '52px' }}
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700 font-medium transition-colors">
+                <button type="button" onClick={() => setShowPass(p => !p)}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
                   {showPass ? 'Hide' : 'Show'}
                 </button>
               </div>
-              {errors.password && <p className={t.fieldError}>{errors.password.message}</p>}
+              {errors.password && <p className="auth-field-error">{errors.password.message}</p>}
             </div>
 
             {/* Confirm password */}
             <div>
-              <label className={t.label}>Confirm password</label>
-              <div className="relative">
+              <label className="auth-label">Confirm password</label>
+              <div style={{ position: 'relative' }}>
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="new-password"
                   {...register('confirmPassword', {
                     required: 'Please confirm your password',
-                    validate: (val) => val === watch('password') || 'Passwords do not match',
+                    validate: v => v === watch('password') || 'Passwords do not match',
                   })}
-                  className={`${t.input} ${errors.confirmPassword ? t.inputError : ''} pr-14`}
+                  className={`auth-input${errors.confirmPassword ? ' error' : ''}`}
+                  style={{ paddingRight: '52px' }}
                 />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700 font-medium transition-colors">
+                <button type="button" onClick={() => setShowConfirm(p => !p)}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
                   {showConfirm ? 'Hide' : 'Show'}
                 </button>
               </div>
-              {errors.confirmPassword && <p className={t.fieldError}>{errors.confirmPassword.message}</p>}
+              {errors.confirmPassword && <p className="auth-field-error">{errors.confirmPassword.message}</p>}
             </div>
 
-            <button type="submit" disabled={isSubmitting} className={`${t.btn} mt-1`}>
+            <button type="submit" disabled={isSubmitting} className="auth-btn" style={{ marginTop: '4px' }}>
               {isSubmitting ? 'Creating account…' : 'Create account'}
             </button>
           </form>
-
         </div>
 
-        {/* Card footer */}
-        <div className="border-t border-gray-100 px-8 py-4 bg-gray-50/60 rounded-b-2xl">
-          <p className="text-xs text-gray-500 text-center">
+        <div className="auth-footer">
+          <p style={{ fontSize: '13px', color: 'var(--color-text-low)', textAlign: 'center' }}>
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-gray-800 hover:text-gray-950 transition-colors">
+            <Link to="/login" style={{ color: 'var(--color-action)', fontWeight: 500, textDecoration: 'none' }}>
               Sign in
             </Link>
           </p>

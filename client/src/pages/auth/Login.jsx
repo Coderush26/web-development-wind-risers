@@ -4,103 +4,112 @@ import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../utils/api'
-import { t } from '../../config/theme'
 
 const Logo = () => (
-  <div className="w-9 h-9 bg-blue-950 rounded-xl flex items-center justify-center mb-7">
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13 3L4 14h8l-1 7 9-11h-8l1-7z" />
+  <div className="auth-logo-mark">
+    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" />
+      <path strokeLinecap="round" d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+      <path strokeLinecap="round" strokeOpacity={0.4} d="M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M19.07 4.93l-2.12 2.12M7.05 16.95l-2.12 2.12" />
     </svg>
   </div>
 )
-
 
 export default function Login() {
   const [showPass, setShowPass] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
-
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm()
 
   const onSubmit = async (data) => {
     try {
       const { data: res } = await api.post('/auth/login', data)
       login(res.user, res.token)
-      toast.success('Welcome back!')
-      navigate('/dashboard')
+      toast.success('Access granted')
+      navigate(res.user.role === 'captain' ? '/captain' : '/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed. Please try again.')
+      toast.error(err.response?.data?.message || 'Authentication failed')
     }
   }
 
   return (
-    <div className={t.pageBg}>
-      <div className={`${t.card} ${t.cardSm}`}>
-        <div className={t.cardPadding}>
+    <div className="auth-page">
+      <div className="auth-card auth-card-sm">
+        <div className="auth-card-body">
 
-          {/* Brand mark */}
           <Logo />
 
-          {/* Heading */}
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Sign in to CodeRush</h1>
-          <p className="text-sm text-gray-500 mt-1 mb-7">Enter your credentials to continue</p>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+              Fleet Command System
+            </p>
+            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-text-high)', letterSpacing: '-0.02em' }}>
+              Welcome back
+            </h1>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-low)', marginTop: '6px' }}>
+              Sign in to access the operations center
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* Email */}
             <div>
-              <label className={t.label}>Email address</label>
+              <label className="auth-label">Email address</label>
               <input
                 type="email"
-                placeholder="you@example.com"
+                placeholder="operator@fleet.com"
                 autoComplete="email"
                 {...register('email', {
                   required: 'Email is required',
                   pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
                 })}
-                className={`${t.input} ${errors.email ? t.inputError : ''}`}
+                className={`auth-input${errors.email ? ' error' : ''}`}
               />
-              {errors.email && <p className={t.fieldError}>{errors.email.message}</p>}
+              {errors.email && <p className="auth-field-error">{errors.email.message}</p>}
             </div>
 
-            {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className={t.label} style={{ marginBottom: 0 }}>Password</label>
-                <Link to="/forgot-password" className={t.linkMuted}>Forgot password?</Link>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label className="auth-label" style={{ marginBottom: 0 }}>Password</label>
+                <Link to="/forgot-password" style={{ fontSize: '12px', color: 'var(--color-text-low)', textDecoration: 'none', transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.target.style.color = 'var(--color-action)'}
+                  onMouseLeave={e => e.target.style.color = 'var(--color-text-low)'}>
+                  Forgot password?
+                </Link>
               </div>
-              <div className="relative">
+              <div style={{ position: 'relative' }}>
                 <input
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   {...register('password', { required: 'Password is required' })}
-                  className={`${t.input} ${errors.password ? t.inputError : ''} pr-14`}
+                  className={`auth-input${errors.password ? ' error' : ''}`}
+                  style={{ paddingRight: '52px' }}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700 font-medium transition-colors"
+                  onClick={() => setShowPass(p => !p)}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.target.style.color = 'var(--color-text-low)'}
+                  onMouseLeave={e => e.target.style.color = 'var(--color-text-muted)'}
                 >
                   {showPass ? 'Hide' : 'Show'}
                 </button>
               </div>
-              {errors.password && <p className={t.fieldError}>{errors.password.message}</p>}
+              {errors.password && <p className="auth-field-error">{errors.password.message}</p>}
             </div>
 
-            <button type="submit" disabled={isSubmitting} className={`${t.btn} mt-1`}>
-              {isSubmitting ? 'Signing in…' : 'Continue'}
+            <button type="submit" disabled={isSubmitting} className="auth-btn" style={{ marginTop: '4px' }}>
+              {isSubmitting ? 'Authenticating…' : 'Sign in'}
             </button>
           </form>
-
         </div>
 
-        {/* Card footer */}
-        <div className="border-t border-gray-100 px-8 py-4 bg-gray-50/60 rounded-b-2xl">
-          <p className="text-xs text-gray-500 text-center">
-            Don&apos;t have an account?{' '}
-            <Link to="/signup" className="font-medium text-gray-800 hover:text-gray-950 transition-colors">
-              Sign up
+        <div className="auth-footer">
+          <p style={{ fontSize: '13px', color: 'var(--color-text-low)', textAlign: 'center' }}>
+            No account?{' '}
+            <Link to="/signup" style={{ color: 'var(--color-action)', fontWeight: 500, textDecoration: 'none' }}>
+              Request access
             </Link>
           </p>
         </div>

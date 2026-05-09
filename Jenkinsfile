@@ -6,8 +6,8 @@ pipeline {
     }
 
     environment {
-        FRONTEND_DIR = 'client'      // change to 'frontend' if needed
-        BACKEND_DIR  = 'server'      // change to 'backend' if needed
+        FRONTEND_DIR = 'client'
+        BACKEND_DIR  = 'server'
         PM2_APP_NAME = 'wind-risers-backend'
         NGINX_ROOT   = '/var/www/html'
     }
@@ -22,7 +22,7 @@ pipeline {
 
         stage('Install & Build Frontend') {
             steps {
-                dir("${FRONTEND_DIR}") {
+                dir('client') {
                     sh 'npm install'
                     sh 'npm run build'
                 }
@@ -31,7 +31,7 @@ pipeline {
 
         stage('Install Backend') {
             steps {
-                dir("${BACKEND_DIR}") {
+                dir('server') {
                     sh 'npm install'
                 }
             }
@@ -39,19 +39,19 @@ pipeline {
 
         stage('Deploy Frontend to Nginx') {
             steps {
-                sh "sudo cp -r ${FRONTEND_DIR}/build/* ${NGINX_ROOT}/"
+                sh 'sudo cp -r client/build/* /var/www/html/'
             }
         }
 
         stage('Deploy Backend with PM2') {
             steps {
-                dir("${BACKEND_DIR}") {
-                    sh """
-                        pm2 describe ${PM2_APP_NAME} > /dev/null 2>&1 \
-                        && pm2 restart ${PM2_APP_NAME} \
-                        || pm2 start index.js --name ${PM2_APP_NAME}
+                dir('server') {
+                    sh '''
+                        pm2 describe wind-risers-backend > /dev/null 2>&1 \
+                        && pm2 restart wind-risers-backend \
+                        || pm2 start server.js --name wind-risers-backend
                         pm2 save
-                    """
+                    '''
                 }
             }
         }
@@ -59,10 +59,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Deployment successful!'
+            echo '✅ wind-risers deployed successfully!'
         }
         failure {
-            echo '❌ Build failed — check logs above.'
+            echo '❌ Build failed — check console output above.'
         }
     }
 }

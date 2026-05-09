@@ -74,7 +74,7 @@ Add these in **Settings → Secrets → Actions** on your GitHub repo:
 4. Runs `npm ci && VITE_PUSHER_KEY=... npm run build` — Vite bakes Pusher keys into the JS bundle
 5. Copies `client/dist/` → `/var/www/html/` (nginx webroot)
 6. Runs `npm ci --omit=dev` in `server/`
-7. `pm2 restart coderush-api` (or starts it fresh on first deploy)
+7. `pm2 restart wind-risers-backend` (or starts it fresh on first deploy)
 8. Deploys `nginx/vircosa.conf` → `/etc/nginx/sites-available/coderush` and reloads nginx
 
 ---

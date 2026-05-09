@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # Override Atlas URI with the local mongo container
+      MONGO_URI: mongodb://mongo:27017/CodeRush
+      CLIENT_URL: http://localhost:3000
+    ports:
+      - "5000:5000"
+
+  client:
+    build:
+      context: ./client
+      args:
+        # Vite bakes these at build time — loaded from root .env
+        VITE_PUSHER_KEY: ${VITE_PUSHER_KEY}
+        VITE_PUSHER_CLUSTER: ${VITE_PUSHER_CLUSTER}
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "3000:80"
+
+volumes:
+  mongo_data:

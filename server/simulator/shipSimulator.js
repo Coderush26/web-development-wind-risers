@@ -182,6 +182,13 @@ export async function startSimulator() {
       const ships = await Ship.find({})
       const zones = await Zone.find({ isActive: true })
 
+      // Advance all ships, collect weather checks in parallel
+      const weatherChecks = ships
+        .filter(s => s.status !== 'stopped' && s.status !== 'arrived')
+        .map(s => isAdverseWeather(s.position.lat, s.position.lng).then(v => [s._id.toString(), v]))
+      const weatherMap = Object.fromEntries(await Promise.all(weatherChecks))
+
+      const toSave = []
       for (const ship of ships) {
         if (ship.status === 'stopped' || ship.status === 'arrived') continue
 
@@ -199,8 +206,7 @@ export async function startSimulator() {
           }
         }
 
-        // Update adverse weather flag (uses 5-min cache — no throttle concern)
-        ship.inAdverseWeather = await isAdverseWeather(ship.position.lat, ship.position.lng)
+        ship.inAdverseWeather = weatherMap[ship._id.toString()] ?? false
 
         advancePosition(ship)
         applyFuelBurn(ship)
@@ -215,13 +221,17 @@ export async function startSimulator() {
           ship.status = 'insufficient_fuel'
         }
 
-        await ship.save()
+        toSave.push(ship)
       }
+
+      // Save all ships in parallel instead of sequentially
+      await Promise.all(toSave.map(s => s.save()))
 
       await checkGeofences(ships, zones)
       await checkProximity(ships)
 
       await trigger('fleet', 'fleet_update', {
+        ts: Date.now(),
         ships: ships.map(s => {
           const { currentPath, pathIndex, __v, ...rest } = s.toObject()
           return rest

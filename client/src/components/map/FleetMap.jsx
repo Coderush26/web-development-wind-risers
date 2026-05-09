@@ -40,38 +40,65 @@ function shipIcon(ship) {
   return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14] })
 }
 
-// ── Ship markers (imperative for performance) ──────────────────────────────
+// ── Ship markers with smooth position interpolation ───────────────────────
+const INTERP_MS = 950   // slightly under the 1 Hz tick so markers never freeze
+
 function MapController({ fleet, onShipClick }) {
   const map        = useMap()
-  const markersRef = useRef(new Map())
+  const markersRef = useRef(new Map())  // id → L.Marker
+  const animsRef   = useRef(new Map())  // id → { fLat, fLng, tLat, tLng, t0 }
+  const rafRef     = useRef(null)
 
+  // Continuous interpolation loop — runs independently of React renders
   useEffect(() => {
-    const current = markersRef.current
-    const seen    = new Set()
+    function frame(now) {
+      animsRef.current.forEach(({ fLat, fLng, tLat, tLng, t0 }, id) => {
+        const marker = markersRef.current.get(id)
+        if (!marker) return
+        const p = Math.min((now - t0) / INTERP_MS, 1)
+        marker.setLatLng([fLat + (tLat - fLat) * p, fLng + (tLng - fLng) * p])
+      })
+      rafRef.current = requestAnimationFrame(frame)
+    }
+    rafRef.current = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [])
+
+  // On each fleet snapshot: register animation targets, create/remove markers
+  useEffect(() => {
+    const now  = performance.now()
+    const seen = new Set()
 
     fleet.forEach(ship => {
       seen.add(ship._id)
-      const latlng = [ship.position.lat, ship.position.lng]
-      const icon   = shipIcon(ship)
+      const { lat, lng } = ship.position
+      const icon = shipIcon(ship)
 
-      if (current.has(ship._id)) {
-        const m = current.get(ship._id)
-        m.setLatLng(latlng)
+      if (markersRef.current.has(ship._id)) {
+        const m   = markersRef.current.get(ship._id)
+        const cur = m.getLatLng()
+        // Animate from current rendered position → new server position
+        animsRef.current.set(ship._id, { fLat: cur.lat, fLng: cur.lng, tLat: lat, tLng: lng, t0: now })
         m.setIcon(icon)
       } else {
-        const m = L.marker(latlng, { icon })
+        const m = L.marker([lat, lng], { icon })
           .addTo(map)
           .on('click', () => onShipClick?.(ship))
         m.bindTooltip(
           `<div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:#F0F6FC;background:#161B22;border:1px solid #30363D;padding:4px 8px;border-radius:6px;">${ship.name}</div>`,
           { permanent: false, direction: 'top', offset: [0, -12], opacity: 1, className: '' }
         )
-        current.set(ship._id, m)
+        markersRef.current.set(ship._id, m)
+        animsRef.current.set(ship._id, { fLat: lat, fLng: lng, tLat: lat, tLng: lng, t0: now })
       }
     })
 
-    current.forEach((marker, id) => {
-      if (!seen.has(id)) { marker.remove(); current.delete(id) }
+    markersRef.current.forEach((marker, id) => {
+      if (!seen.has(id)) {
+        marker.remove()
+        markersRef.current.delete(id)
+        animsRef.current.delete(id)
+      }
     })
   }, [fleet, map, onShipClick])
 

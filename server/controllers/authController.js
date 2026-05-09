@@ -115,7 +115,7 @@ export const login = async (req, res) => {
     const isMatch = await user.comparePassword(password)
     if (!isMatch) return res.status(401).json({ message: 'Invalid email or password.' })
 
-    const token = generateToken({ id: user._id })
+    const token = generateToken({ id: user._id, role: user.role, assignedShipId: user.assignedShipId })
 
     res.json({
       token,

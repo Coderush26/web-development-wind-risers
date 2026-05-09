@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePusher } from '../../context/PusherContext'
 import api from '../../utils/api'
 import toast from 'react-hot-toast'
@@ -30,6 +30,20 @@ export default function DirectiveInbox({ ship }) {
   const [responding,  setResponding]  = useState(null)
   const [expandedId,  setExpandedId]  = useState(null)
   const [escalateMsg, setEscalateMsg] = useState('')
+
+  // Load any pre-existing pending directives for this ship on mount
+  useEffect(() => {
+    api.get('/directives/mine')
+      .then(({ data }) => {
+        if (!data.length) return
+        setDirectives(prev => {
+          const existingIds = new Set(prev.map(d => d._id))
+          const fresh = data.filter(d => !existingIds.has(d._id))
+          return fresh.length ? [...fresh, ...prev] : prev
+        })
+      })
+      .catch(() => {})
+  }, []) // eslint-disable-line
 
   const pending = directives.filter(d =>
     d.status === 'pending' &&

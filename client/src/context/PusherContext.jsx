@@ -1,21 +1,24 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import Pusher from 'pusher-js'
 import api from '../utils/api'
+import { useAuth } from './AuthContext'
 
 const PusherContext = createContext(null)
 
 export function PusherProvider({ children }) {
+  const { user } = useAuth()
+
   const [fleet,      setFleet]      = useState([])
   const [alerts,     setAlerts]     = useState([])
   const [zones,      setZones]      = useState([])
   const [directives, setDirectives] = useState([])
   const [loading,    setLoading]    = useState(true)
 
-  // Fetch initial state from REST API
+  // Fetch initial state — only when authenticated
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) { setLoading(false); return }
+    if (!user) { setLoading(false); return }
 
+    setLoading(true)
     Promise.all([
       api.get('/ships'),
       api.get('/alerts/active'),
@@ -28,10 +31,12 @@ export function PusherProvider({ children }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [user])
 
-  // Pusher real-time subscriptions
+  // Pusher real-time subscriptions — only when authenticated
   useEffect(() => {
+    if (!user) return
+
     const pusher = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
       cluster: import.meta.env.VITE_PUSHER_CLUSTER,
     })
@@ -41,7 +46,10 @@ export function PusherProvider({ children }) {
     const zonesCh      = pusher.subscribe('zones')
     const directivesCh = pusher.subscribe('directives')
 
-    fleetCh.bind('fleet_update', ({ ships }) => setFleet(ships))
+    fleetCh.bind('fleet_update', ({ ships, ts }) => {
+      if (ts) console.debug(`[fleet] latency: ${Date.now() - ts} ms`)
+      setFleet(ships)
+    })
 
     alertsCh.bind('alert', ({ alert }) =>
       setAlerts(prev => [alert, ...prev])
@@ -68,7 +76,7 @@ export function PusherProvider({ children }) {
     )
 
     return () => pusher.disconnect()
-  }, [])
+  }, [user])
 
   return (
     <PusherContext.Provider value={{

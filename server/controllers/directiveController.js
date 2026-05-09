@@ -60,11 +60,11 @@ export async function getDirectivesForShip(req, res) {
 // GET /api/directives/mine — pending directives for the logged-in captain's ship
 export async function getMyDirectives(req, res) {
   try {
-    if (!req.user.assignedShipId) {
-      return res.json([])
-    }
+    const captain = await User.findById(req.user.id).select('assignedShipId')
+    if (!captain?.assignedShipId) return res.json([])
+
     const directives = await Directive.find({
-      toShipId: req.user.assignedShipId,
+      toShipId: captain.assignedShipId,
       status:   'pending',
     })
       .populate('fromUserId', 'firstName lastName')
@@ -90,8 +90,9 @@ export async function respondToDirective(req, res) {
       return res.status(409).json({ message: 'Directive already responded to' })
     }
 
-    // Ensure this captain owns the ship
-    if (req.user.assignedShipId?.toString() !== directive.toShipId._id.toString()) {
+    // Always fetch assignedShipId from DB — never trust the JWT for this
+    const captain = await User.findById(req.user.id).select('assignedShipId')
+    if (!captain?.assignedShipId || captain.assignedShipId.toString() !== directive.toShipId._id.toString()) {
       return res.status(403).json({ message: 'You are not assigned to this ship' })
     }
 
@@ -202,7 +203,12 @@ async function applyDirectiveToShip(ship, directive) {
 
   await ship.save()
 
+  const allShips = await Ship.find({})
   await trigger('fleet', 'fleet_update', {
-    ships: (await Ship.find({})).map(s => s.toObject()),
+    ts: Date.now(),
+    ships: allShips.map(s => {
+      const { currentPath, pathIndex, __v, ...rest } = s.toObject()
+      return rest
+    }),
   })
 }
